@@ -111,9 +111,7 @@ export async function GET(request: Request) {
   const indicator = getWorstIndicator(indicators);
   const description = getDescription(indicator);
 
-  // Get base URL from request
-  const url = new URL(request.url);
-  const baseUrl = `${url.protocol}//${url.host}`;
+  const baseUrl = new URL(process.env.NEXT_PUBLIC_URL || request.url).origin;
 
   const response: StatusResponse = {
     page: {
