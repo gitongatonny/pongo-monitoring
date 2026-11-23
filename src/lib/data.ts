@@ -1,6 +1,6 @@
 // src/lib/data.ts
 
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import type { AlertOverride } from "@/db";
@@ -168,6 +168,34 @@ export const getCheckResults = cache(
     }));
   },
 );
+
+export async function getMonitorAvailability(
+  monitorIds: string[],
+  timeRange: TimeRange,
+) {
+  if (monitorIds.length === 0) return [];
+
+  const db = await getDb();
+  return db
+    .select({
+      monitorId: checkResults.monitorId,
+      observedChecks: count(),
+      availabilityScore:
+        sql`sum(case ${checkResults.status} when 'up' then 1 when 'degraded' then 0.5 else 0 end)`.mapWith(
+          Number,
+        ),
+    })
+    .from(checkResults)
+    .where(
+      and(
+        inArray(checkResults.monitorId, monitorIds),
+        gte(checkResults.checkedAt, timeRange.from),
+        lte(checkResults.checkedAt, timeRange.to),
+        ne(checkResults.status, "pending"),
+      ),
+    )
+    .groupBy(checkResults.monitorId);
+}
 
 export const getLatestCheckResult = cache(
   async (monitorId: string): Promise<CheckResult | null> => {

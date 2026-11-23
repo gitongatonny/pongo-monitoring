@@ -404,6 +404,9 @@ Root cause: upstream provider network partition.
 | `/shared/[slug]/feed.atom` | Atom feed |
 | `/settings` | Application settings |
 | `/api/status.json` | System status JSON |
+| `/shared/[slug]/availability.json` | Measured 24-hour availability and check count per active public dashboard monitor |
+
+The availability endpoint gives successful checks full credit and degraded checks half credit. It excludes pending checks and reports `null` until a monitor has measured results in the window.
 | `/api/cron` | Vercel cron endpoint |
 
 ## Deployment
