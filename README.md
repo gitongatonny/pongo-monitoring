@@ -6,7 +6,9 @@ This fork adds a FOEMI delivery pipeline that tests and scans a Linux ARM64 imag
 
 ![Pongo operator overview](public/readme/overview-dark.png)
 
-## Quick start
+[Quick Start](#quick-start) · [Configuration](#configure-pongo) · [Deployment](#deploy-through-github-actions) · [Documentation](#documentation-and-license)
+
+## Quick Start
 
 Install [Bun](https://bun.sh/). This example uses local SQLite.
 
