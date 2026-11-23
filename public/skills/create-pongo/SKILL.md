@@ -166,11 +166,11 @@ Consult the checked-out deployment files and [README deployment instructions](ht
 
 | Target | Database and runner |
 | --- | --- |
-| Local server / VPS | SQLite on persistent disk or PostgreSQL. Explicit migration, `bunx next build`, `bun start`, and a supervised `bun scheduler` process. |
+| Local server / VPS | SQLite on persistent disk or PostgreSQL. Explicit migration, `bun run build`, `bun start`, and a supervised `bun scheduler` process. |
 | Docker | Build the included Dockerfile. Explicitly migrate using the image before starting the web container. Set `SCHEDULER_ENABLED=true` to start its scheduler with the web app, or run a separate scheduler container. SQLite requires the same persistent volume for migrations, web app, and scheduler. The entrypoint does not migrate. |
 | Fly.io | Replace `fly.toml`'s `pongo-production` app name with a new app belonging to the user. Use the mounted `/data` volume with `DATABASE_URL=file:/data/pongo.db` for a single-host SQLite setup, or use PostgreSQL. Explicitly migrate and enable `SCHEDULER_ENABLED=true` if using the bundled scheduler. |
 | Vercel | Use a remote PostgreSQL or libSQL database, set `CRON_SECRET`, and use `/api/cron` instead of a long-running scheduler. `vercel.json` currently runs every 30 minutes; one-minute monitor intervals cannot override that cadence. Select a provider-supported schedule or an external scheduler for faster checks. |
 
-The current `bun run build` script chooses SQLite migrations only when `DATABASE_URL` starts with `sqlite`, so it selects PostgreSQL migrations for the documented `file:`/`libsql:` URLs and for an unset URL. Run the correct migration explicitly and use `bunx next build` for production builds; on Vercel set the build command to the selected migration followed by `bunx next build`. Reinspect `package.json` in case this has been corrected. Avoid running Vercel Cron and a standalone scheduler unintentionally for the same region.
+Build with `bun run build`. Run the migration for the selected database explicitly before starting Pongo or serving deployment traffic. Use a single scheduler per region.
 
 Verify the live page without login, protected admin access, and a fresh recorded check from the production runner. Name any remaining domain, credentials, or process-supervision work instead of claiming the deployment is complete.
