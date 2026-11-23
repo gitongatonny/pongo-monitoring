@@ -61,16 +61,20 @@ roll_out() (
 
 echo "Watching $repo for local K3s deployments. Logs are in $log_dir."
 while true; do
-  deployments=$(gh api "$endpoint?environment=foemi-local&task=deploy%3Ak3s&per_page=5" |
+  if ! deployments=$(gh api "$endpoint?environment=foemi-local&task=deploy%3Ak3s&per_page=5" |
     jq -c '.[] | select(.creator.login == "github-actions[bot]") |
-      .payload |= (if type == "string" then (try fromjson catch null) else . end)')
+      .payload |= (if type == "string" then (try fromjson catch null) else . end)'); then
+    [[ "$once" == --once ]] && exit 1
+    sleep 10
+    continue
+  fi
   while IFS= read -r deployment; do
     [[ -n "$deployment" ]] || continue
     IFS=$'\t' read -r id commit version image run <<< "$(jq -r '[.id, .sha, .payload.version, .payload.image, .payload.run] | @tsv' <<< "$deployment")"
     [[ "$id" =~ ^[0-9]+$ && "$run" =~ ^[0-9]+$ && "$commit" =~ ^[a-f0-9]{40}$ ]] || continue
     [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue
     [[ "$image" =~ ^ghcr\.io/gitongatonny/pongo-monitoring@sha256:[a-f0-9]{64}$ ]] || continue
-    state=$(gh api "$endpoint/$id/statuses" --jq '.[0].state')
+    state=$(gh api "$endpoint/$id/statuses" --jq '.[0].state') || continue
     [[ "$state" == queued ]] || continue
     if ! gh api "repos/$repo/actions/runs/$run" |
       jq -e --arg sha "$commit" --arg repo "$repo" '

@@ -19,9 +19,11 @@ flowchart LR
 
 ## Workflows and image identity
 
-Development pushes and PRs into `develop` or `main` run the quality, browser, Docker and Trivy jobs. Review all checks before merging an assignment release through a PR into `main`. Change `release.json` in each release PR. CI refuses publication if the version tag already exists. It publishes the scanned image to GHCR and gives deployment the resulting digest. High and critical Trivy findings fail validation.
+Development pushes and PRs into `develop` or `main` run the quality, browser, Docker and Trivy jobs. The image jobs build for Linux ARM64 to match the local K3s cluster. Review all checks before merging an assignment release through a PR into `main`. Change `release.json` in each release PR. CI refuses publication if the version tag already exists. It publishes the scanned image to GHCR and gives deployment the resulting digest. High and critical Trivy findings fail validation.
 
 The hosted deployment job creates a GitHub deployment request. The local watcher verifies that the request comes from the workflow for a push to `main`, fetches the exact reviewed manifests, applies the digest and reports success only after rollout and HTTP verification. The cluster API stays on loopback. The laptop must be awake, Docker and K3s running, and the watcher active during releases. A single node supports rolling upgrades and still has a single point of failure.
+
+Before the first release, confirm the [fork’s Actions page](https://github.com/gitongatonny/pongo-monitoring/actions) shows the `CI` workflow and a successful development run. Require the quality, browser, and image checks on the protected `main` branch. Complete GHCR pull setup and start the watcher before merging the initial version.
 
 ## Create and configure a local cluster
 
@@ -106,6 +108,7 @@ Open `http://127.0.0.1:8080`. Check `/health`, `/ready`, `/version`, and `/api/s
 - ImagePullBackOff. Inspect Pod events and verify the package read credential and published digest.
 - Migration timeout. Read the migration Job logs and verify PostgreSQL readiness and the Secret. Before retrying the deploy job, remove the failed Job after resolving the cause. A successful Job is reusable for the same release.
 - Rollout timeout. Inspect Pod events and logs. Roll back compatible web and scheduler versions using `kubectl -n pongo rollout undo deployment/pongo-web` and the same command for `deployment/pongo-scheduler`. Verify both rollouts and the restored `/version`. Back up PostgreSQL before schema changes and verify rollback compatibility.
+- Readiness rehearsals. Use an unreachable probe port to force a failure. A protected path can redirect to the login page, and Kubernetes counts HTTP redirects as successful probes.
 - Watcher timeout. Check the local terminal, kubeconfig expiry, and the restricted service account. Rerun the deployment job after recovery so it creates a fresh request for the published digest.
 
 For each graded release, keep the PR and commit, CI run and Trivy output, GHCR tag and digest, watcher log with Pod and rollout status, and the running `/version`. Preserve the intentional red and corrected green CI runs and record the verified version before and after. Prepare a separate source change and version bump for the live assessment.
