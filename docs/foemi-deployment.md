@@ -112,3 +112,5 @@ Open `http://127.0.0.1:8080`. Check `/health`, `/ready`, `/version`, and `/api/s
 - Watcher timeout. Check the local terminal, kubeconfig expiry, and the restricted service account. Rerun the deployment job after recovery so it creates a fresh request for the published digest.
 
 For each graded release, keep the PR and commit, CI run and Trivy output, GHCR tag and digest, watcher log with Pod and rollout status, and the running `/version`. Preserve the intentional red and corrected green CI runs and record the verified version before and after. Prepare a separate source change and version bump for the live assessment.
+
+The [hosted release record](evidence/hosted-releases.md) captures the three graded releases and the current K3s deployment.
