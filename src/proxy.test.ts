@@ -13,6 +13,9 @@ describe("agent documentation access", () => {
           const paths = [
             "/llms.txt",
             "/skills/create-pongo/SKILL.md",
+            "/health",
+            "/ready",
+            "/version",
             "/monitors",
             "/settings",
             "/skills/create-pongo/private.md",
@@ -30,11 +33,14 @@ describe("agent documentation access", () => {
 
     expect(result.exitCode).toBe(0);
     const responses = JSON.parse(result.stdout.toString());
-    expect(responses.slice(0, 2)).toEqual([
+    expect(responses.slice(0, 5)).toEqual([
       { path: "/llms.txt", status: 200, location: null },
       { path: "/skills/create-pongo/SKILL.md", status: 200, location: null },
+      { path: "/health", status: 200, location: null },
+      { path: "/ready", status: 200, location: null },
+      { path: "/version", status: 200, location: null },
     ]);
-    for (const response of responses.slice(2)) {
+    for (const response of responses.slice(5)) {
       expect(response.status).toBe(307);
       expect(response.location).toBe("http://localhost:3000/login");
     }

@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import release from "../../release.json";
 
 // Each test represents a separate visitor, including independent login limits.
 test.beforeEach(async ({ context }, testInfo) => {
@@ -12,6 +13,22 @@ test.describe("smoke", () => {
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
     await expect(page).toHaveTitle(/pongo/i);
+  });
+
+  test("operational routes respond with dashboard auth enabled", async ({
+    request,
+  }) => {
+    const health = await request.get("/health", { maxRedirects: 0 });
+    expect(health.status()).toBe(200);
+    expect(await health.json()).toEqual({ status: "ok" });
+
+    const ready = await request.get("/ready", { maxRedirects: 0 });
+    expect(ready.status()).toBe(200);
+    expect(await ready.json()).toEqual({ status: "ready" });
+
+    const version = await request.get("/version", { maxRedirects: 0 });
+    expect(version.status()).toBe(200);
+    expect(await version.json()).toMatchObject({ version: release.version });
   });
 
   test("protected route redirects to /login when no session", async ({

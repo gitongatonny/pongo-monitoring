@@ -107,21 +107,24 @@ async function initDatabase(): Promise<PongoDb> {
       authToken: process.env.TURSO_AUTH_TOKEN,
     });
 
-    // Production SQLite performance pragmas
-    await client.executeMultiple(`
-      PRAGMA journal_mode = WAL;
-      PRAGMA synchronous = NORMAL;
-      PRAGMA cache_size = -64000;
-      PRAGMA busy_timeout = 5000;
-      PRAGMA temp_store = MEMORY;
-    `);
+    try {
+      await client.executeMultiple(`
+        PRAGMA journal_mode = WAL;
+        PRAGMA synchronous = NORMAL;
+        PRAGMA cache_size = -64000;
+        PRAGMA busy_timeout = 5000;
+        PRAGMA temp_store = MEMORY;
+      `);
 
-    // Apply indexes
-    for (const sql of sqliteSchema.checkResultsIndexes) {
-      await client.execute(sql);
-    }
-    for (const sql of sqliteSchema.alertIndexes) {
-      await client.execute(sql);
+      for (const statement of sqliteSchema.checkResultsIndexes) {
+        await client.execute(statement);
+      }
+      for (const statement of sqliteSchema.alertIndexes) {
+        await client.execute(statement);
+      }
+    } catch (error) {
+      client.close();
+      throw error;
     }
 
     _db = drizzle(client, { schema: sqliteSchema });
@@ -151,9 +154,17 @@ function getDbPromise() {
     ) {
       dbPromise = globalCache.__pongoDbPromise;
     } else {
-      dbPromise = initDatabase();
-      globalCache.__pongoDbPromise = dbPromise;
+      const pending = initDatabase();
+      dbPromise = pending;
+      globalCache.__pongoDbPromise = pending;
       globalCache.__pongoDbDriver = DB_DRIVER;
+      // Allow a later request to retry after a transient initialization error.
+      void pending.catch(() => {
+        if (dbPromise === pending) dbPromise = null;
+        if (globalCache.__pongoDbPromise === pending) {
+          globalCache.__pongoDbPromise = null;
+        }
+      });
     }
   }
   return dbPromise;
