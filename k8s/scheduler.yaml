@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pongo-scheduler
+spec:
+  selector:
+    app: pongo-scheduler
+  ports:
+    - port: 3001
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pongo-scheduler
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  progressDeadlineSeconds: 180
+  selector:
+    matchLabels:
+      app: pongo-scheduler
+  template:
+    metadata:
+      labels:
+        app: pongo-scheduler
+    spec:
+      automountServiceAccountToken: false
+      imagePullSecrets:
+        - name: pongo-ghcr
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: scheduler
+          image: pongo-app:release
+          imagePullPolicy: IfNotPresent
+          command: [bun, src/scheduler/index.ts]
+          envFrom:
+            - configMapRef:
+                name: pongo-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: pongo-secrets
+                  key: DATABASE_URL
+            - name: SCHEDULER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: pongo-secrets
+                  key: SCHEDULER_SECRET
+          ports:
+            - name: http
+              containerPort: 3001
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

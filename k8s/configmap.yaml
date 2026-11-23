@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pongo-config
+data:
+  SCHEDULER_ENABLED: "false"
+  ARCHIVAL_ENABLED: "false"
+  SCHEDULER_URL: http://pongo-scheduler:3001
+  SCHEDULER_HOST: "0.0.0.0"
+  SCHEDULER_PORT: "3001"
+  PONGO_REGION: foemi

@@ -1,49 +1,47 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 
 const { spawn } = require("node:child_process");
 
-const env = { ...process.env };
-const command = process.argv.slice(2).join(" ");
-const schedulerEnabled = process.env.SCHEDULER_ENABLED === "true";
-const archiverEnabled = process.env.ARCHIVAL_ENABLED === "true";
+const command = process.argv.slice(2);
+const children = [];
 
-(async () => {
-  // If running the web server, prerender pages and optionally start background services
-  if (command === "bun run start") {
-    await exec("bun next build --experimental-build-mode generate");
-
-    // Start scheduler in background if enabled
-    if (schedulerEnabled) {
-      spawn("bun", ["run", "src/scheduler/index.ts"], {
-        shell: true,
-        stdio: "inherit",
-        env,
-      });
-    }
-
-    // Start archiver in background if enabled
-    if (archiverEnabled) {
-      spawn("bun", ["run", "src/archiver/index.ts"], {
-        shell: true,
-        stdio: "inherit",
-        env,
-      });
-    }
-  }
-
-  // Launch the requested command
-  await exec(command);
-})();
-
-function exec(command) {
-  const child = spawn(command, { shell: true, stdio: "inherit", env });
-  return new Promise((resolve, reject) => {
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`${command} failed rc=${code}`));
-      }
-    });
+function start(program, args) {
+  const child = spawn(program, args, { stdio: "inherit" });
+  children.push(child);
+  child.on("error", (error) => {
+    console.error(error);
+    stop();
+    process.exitCode = 1;
   });
+  return child;
+}
+
+function stop(signal = "SIGTERM") {
+  for (const child of children) {
+    child.kill(signal);
+  }
+}
+
+process.on("SIGTERM", () => stop());
+process.on("SIGINT", () => stop("SIGINT"));
+
+if (command.join(" ") === "bun run start") {
+  if (process.env.SCHEDULER_ENABLED === "true") {
+    start(process.execPath, ["src/scheduler/index.ts"]);
+  }
+  if (process.env.ARCHIVAL_ENABLED === "true") {
+    start(process.execPath, ["src/archiver/index.ts"]);
+  }
+  // Start Next directly so signals reach the web server.
+  start(process.execPath, ["./node_modules/next/dist/bin/next", "start"]).on(
+    "exit",
+    onExit,
+  );
+} else {
+  start(command[0], command.slice(1)).on("exit", onExit);
+}
+
+function onExit(code, signal) {
+  stop();
+  process.exitCode = code ?? (signal === "SIGTERM" ? 0 : 1);
 }
