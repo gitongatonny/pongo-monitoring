@@ -74,9 +74,11 @@ Local review data shown for illustration.
 
 ## Quick Start
 
+This fork uses Pongo for the FOEMI CI/CD assignment. See the [baseline audit](docs/baseline-audit.md) and the [local Kubernetes deployment guide](docs/foemi-deployment.md).
+
 ```bash
-git clone https://github.com/TimMikeladze/pongo.git
-cd pongo
+git clone https://github.com/gitongatonny/pongo-monitoring.git
+cd pongo-monitoring
 cp .env.example .env        # configure environment variables
 bun install
 bun run db:sqlite:migrate   # create tables
@@ -444,6 +446,8 @@ The included `Dockerfile` and `fly.toml` handle everything. The Docker entrypoin
 ### Docker Compose
 
 Run the selected database migration in a one-off container before starting the app and scheduler. The Docker entrypoint does not apply migrations. Both services must use the same database; SQLite requires a shared persistent volume.
+
+The PostgreSQL image migration command is `bun scripts/migrate-postgres.ts`. The image includes a `/health` check. Use `/ready` to verify the database and `/version` to identify the build. Set `PONGO_BUILD_COMMIT` as a Docker build argument to include the source commit.
 
 ```yaml
 services:
