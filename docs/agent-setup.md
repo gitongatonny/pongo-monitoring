@@ -67,6 +67,6 @@ The agent should return the page URL, actual check outcomes, changed configurati
 | Page loads but checks never arrive | Keep `bun scheduler` running alongside `bun dev`, using the same `DATABASE_URL`. |
 | New service is missing | Register its config in `pongo/monitors/index.ts` and use that registry key in the dashboard's `monitors` list. Restart the scheduler. |
 | `/shared/<slug>` returns 404 | Register the dashboard in `pongo/dashboards/index.ts`, set `public: true`, and use its `slug` in the URL. |
-| SQLite build tries PostgreSQL migrations | Run `bun run db:sqlite:migrate` followed by `bunx next build`; the current `bun run build` database check does not recognize `file:` URLs. |
+| SQLite reports missing tables | Run `bun run db:sqlite:migrate` with the same `DATABASE_URL` you use to start Pongo. |
 
 For manual configuration, see the [README](../README.md#quick-start) and [.env.example](../.env.example).

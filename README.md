@@ -427,7 +427,7 @@ All services share one database. No message queues or service mesh required.
 1. Click "Deploy with Vercel" above
 2. Set `DATABASE_URL` and `CRON_SECRET` (`openssl rand -base64 32`)
 
-Use a remote PostgreSQL or libSQL database. The included `vercel.json` invokes `/api/cron` every 30 minutes; a monitor's shorter interval does not make cron run more often. Choose a provider-supported faster schedule or an external scheduler if needed. Set the build command to the selected migration command followed by `bunx next build` (see [Database](#database)).
+Use a remote PostgreSQL or libSQL database. The included `vercel.json` invokes `/api/cron` every 30 minutes; a monitor's shorter interval does not make cron run more often. Choose a provider-supported faster schedule or an external scheduler if needed. Run the selected migration as a deployment step before serving traffic (see [Database](#database)).
 
 ### Fly.io
 
@@ -541,7 +541,7 @@ bun run db:sqlite:migrate # SQLite
 bun run db:pg:studio      # Open Drizzle Studio
 ```
 
-The current `bun run build` script chooses SQLite migrations only for a `DATABASE_URL` starting with `sqlite`; it incorrectly chooses PostgreSQL for `file:`/`libsql:` URLs or an unset URL. After running the correct migration, build with `bunx next build` and start with `bun start`. Docker also needs an explicit migration before startup.
+Build the application with `bun run build`. Run the migration for your database explicitly before starting the application with `bun start` or starting its container.
 
 For remote libSQL, the bundled SQLite migration config does not pass `TURSO_AUTH_TOKEN`. Use a Drizzle config with `dialect: "turso"`, the SQLite schema and migrations directory, and `dbCredentials` containing `url` and `authToken`; see the [setup skill](public/skills/create-pongo/SKILL.md#migrate-and-run) for the configuration and command.
 
@@ -613,8 +613,7 @@ When `ACCESS_CODE` is set:
 | Command | Description |
 |---|---|
 | `bun dev` | Start Next.js dev server |
-| `bunx next build` | Build for production after explicit database migrations |
-| `bun run build` | Migrate and build; see the database-selection limitation above |
+| `bun run build` | Build the application for production |
 | `bun start` | Start production server |
 | `bun scheduler` | Start scheduler service |
 | `bun archiver` | Start archiver service |
