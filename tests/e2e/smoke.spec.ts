@@ -31,6 +31,18 @@ test.describe("smoke", () => {
     expect(await version.json()).toMatchObject({ version: release.version });
   });
 
+  test("status APIs use the configured public URL", async ({ request }) => {
+    const system = await request.get("/api/status.json");
+    const dashboard = await request.get("/shared/status/status.json");
+
+    expect(system.status()).toBe(200);
+    expect(dashboard.status()).toBe(200);
+    expect((await system.json()).page.url).toBe("https://status.example.test");
+    expect((await dashboard.json()).page.url).toBe(
+      "https://status.example.test/shared/status",
+    );
+  });
+
   test("protected route redirects to /login when no session", async ({
     page,
   }) => {
