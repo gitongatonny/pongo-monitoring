@@ -2,7 +2,11 @@
 set -euo pipefail
 
 : "${KUBECONFIG:?Set KUBECONFIG to the dedicated local K3s kubeconfig}"
-repo=gitongatonny/pongo-monitoring
+repo=${PONGO_GITHUB_REPO:-gitongatonny/pongo-monitoring}
+[[ "$repo" =~ ^[a-z0-9-]+/[a-z0-9._-]+$ ]] || {
+  echo "Set PONGO_GITHUB_REPO to the lowercase GitHub owner/repository." >&2
+  exit 1
+}
 endpoint="repos/$repo/deployments"
 root=$(cd "$(dirname "$0")/.." && pwd)
 log_dir=${PONGO_DEPLOY_LOG_DIR:-${TMPDIR:-/tmp}/pongo-local-deployments}
@@ -73,7 +77,8 @@ while true; do
     IFS=$'\t' read -r id commit version image run <<< "$(jq -r '[.id, .sha, .payload.version, .payload.image, .payload.run] | @tsv' <<< "$deployment")"
     [[ "$id" =~ ^[0-9]+$ && "$run" =~ ^[0-9]+$ && "$commit" =~ ^[a-f0-9]{40}$ ]] || continue
     [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || continue
-    [[ "$image" =~ ^ghcr\.io/gitongatonny/pongo-monitoring@sha256:[a-f0-9]{64}$ ]] || continue
+    image_prefix="ghcr.io/$repo@sha256:"
+    [[ "$image" == "$image_prefix"* && "${image#"$image_prefix"}" =~ ^[a-f0-9]{64}$ ]] || continue
     state=$(gh api "$endpoint/$id/statuses" --jq '.[0].state') || continue
     [[ "$state" == queued ]] || continue
     if ! gh api "repos/$repo/actions/runs/$run" |
